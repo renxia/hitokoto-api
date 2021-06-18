@@ -5966,7 +5966,7 @@ fsevents@^2.1.2:
     mysql2: 2.2.5
     nconf: 0.11.2
     nconf-yaml: 1.0.2
-    nodemailer: 6.6.1
+    nodemailer: 6.6.2
     nyc: 15.1.0
     passthrough-counter: 1.0.0
     pify: 5.0.0
@@ -9093,10 +9093,10 @@ fsevents@^2.1.2:
   languageName: node
   linkType: hard
 
-"nodemailer@npm:6.6.1":
-  version: 6.6.1
-  resolution: "nodemailer@npm:6.6.1::__archiveUrl=https%3A%2F%2Fregistry.nlark.com%2Fnodemailer%2Fdownload%2Fnodemailer-6.6.1.tgz"
-  checksum: c889cf7d52cb7931d0b0563aff2c64f95a0f2f8659841a033288e84224933d3df4963ebb334f5aee0a5b7958ea5638f9a92ae367231ff4bb71ac76011b30fd2e
+"nodemailer@npm:6.6.2":
+  version: 6.6.2
+  resolution: "nodemailer@npm:6.6.2::__archiveUrl=https%3A%2F%2Fregistry.nlark.com%2Fnodemailer%2Fdownload%2Fnodemailer-6.6.2.tgz"
+  checksum: 5d15ce2116938cae59ca089b88b13506440d9aa1e06b670a2addb48b0c5b86aa05523e4d20321cb1ca5e441e726ec3563e5d850f3c5af4347bf89eb19ee5ec7f
   languageName: node
   linkType: hard
 
