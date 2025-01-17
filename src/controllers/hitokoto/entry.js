@@ -8,6 +8,8 @@ const {
   tickUpdateCategories,
   ok,
 } = require('./_utils')
+const nconf = require('nconf')
+const defaultQuery = nconf.get('default_query')
 
 module.exports = async (ctx) => {
   // Tick Updates
@@ -15,6 +17,14 @@ module.exports = async (ctx) => {
   if (!ctx.query) {
     throw new Error('Runtime Error: `ctx.query` is not defined.')
   }
+
+  // 支持默认参数配置
+  if (defaultQuery) {
+    Object.keys(defaultQuery).forEach(key => {
+      if (!ctx.query[key]) ctx.query[key] = defaultQuery[key]
+    })
+  }
+
   // Query Params
   const tmp = {
     max: parseInt(ctx.query.max_length),
@@ -25,6 +35,17 @@ module.exports = async (ctx) => {
     encode: getParamEncode(ctx.query.encode),
     select: ctx.query.select ?? '.hitokoto',
   }
+
+  // 支持按 uuid 精确查找
+  if (ctx.query.uuid) {
+    const sentence = await getSentenceByUUID([ctx.query.uuid]) // 从满足长度区间的 UUID 列表中抽一个
+    if (!sentence) {
+      return fail(ctx, '很抱歉，没有找到该句子。', 400)
+    }
+    ok(ctx, sentence, params.encode, params.select)
+    return
+  }
+
   params.min_length = tmp.min && tmp.min >= 0 ? tmp.min : 0
   params.max_length =
     tmp.max && tmp.max <= 1000 && tmp.max > params.min_length

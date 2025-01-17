@@ -14,7 +14,7 @@ Sentry.init({
   debug: !!nconf.get('telemetry:debug') || false,
   dsn:
     isTelemetryErrorEnabled && isTelemetryPerformanceEnabled
-      ? 'https://9e3019aa154c45ba8affa9a34c7fe162@o673612.ingest.sentry.io/5768310'
+      ? nconf.get('telemetry:sentry') || 'https://b5b0f0a0e44d42edb3d39e52fc6d78e1@o917768.ingest.sentry.io/5860254'
       : false,
   release: 'hitokoto-api@v' + nconf.get('version'),
   tracesSampler(samplingContext) {

@@ -28,7 +28,7 @@ module.exports = [
     creator: {
       type: model.STRING,
       allowNull: false,
-      defaultValue: 'hitokoto',
+      defaultValue: 'lzwme',
     },
     creator_uid: {
       type: model.STRING,
