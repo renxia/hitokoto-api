@@ -126,7 +126,25 @@ exports.fail = (ctx, msg, code) => {
   }
 }
 
+const defaultData = process.env.DEFAULT_DATA ? JSON.parse(process.env.DEFAULT_DATA) : {
+  from: 'lzwme',
+  from_who: 'lzwme',
+  creator: 'lzwme',
+  creator_uid: 0,
+  reviewer: 0,
+  commit_from: 'web',
+}
+
 exports.ok = (ctx, data, type, select = '.hitokoto') => {
+  if (data && data.uuid) {
+
+    Object.keys(defaultData).forEach(key => {
+      if (!data[key]) data[key] = defaultData[key]
+    })
+
+    if (!data.length) data.length = data.hitokoto.length
+  }
+
   ctx.status = 200
   ctx.body = flatstr(handleData[type](data, select))
   ctx.type = MIME.get(type)
