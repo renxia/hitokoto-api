@@ -25,8 +25,9 @@ requests:
     - api.a632079.me
     - api.hitokoto.cn
     - sslapi.hitokoto.cn
-telemetry: # 遥测服务
-  performance: true # 性能监控
-  error: true # 错误报告
-  usage: true # 使用报告
+telemetry: # 遥测服务（默认全部关闭，需要时改为 true 开启）
+  performance: false # 性能监控
+  error: false # 错误报告（Sentry，需配合 telemetry.sentry 指定上报地址）
+  usage: false # 使用报告
   debug: false # 是否启用调试模式（该模式会让遥测服务打印调试信息）
+  # sentry: '' # 自定义 Sentry DSN，留空则使用程序内置地址

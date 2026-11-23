@@ -64,9 +64,16 @@ process.on('uncaughtException', function (err, origin) {
   if (nconf.get('telemetry:error') && !isDev) {
     CaptureUncaughtException(err)
     if (err.message !== 'read ECONNRESET') {
-      Sentry.close().then(() => {
-        process.exit(1)
-      })
+      Sentry.close()
+        .catch((e) => {
+          // 遥测关闭失败不能阻塞 worker 退出
+          logger.error(
+            `[core.http.worker] Sentry.close() failed: ${e && e.stack}`,
+          )
+        })
+        .then(() => {
+          process.exit(1)
+        })
     }
   } else {
     if (err.message !== 'read ECONNRESET') {

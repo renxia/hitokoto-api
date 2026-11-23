@@ -54,6 +54,12 @@ preStart.loadAsync(opts.config_file || null, false, opts.dev).then(() => {
   const { startWorkersPool, WorkersBridge } = require('./src/http/primary')
 
   function notifyChildProcessesExit() {
+    // 先标记关闭流程并回收 workers，避免 worker 因信号退出而触发补派生
+    try {
+      WorkersBridge.workers.prepareShutdown()
+    } catch (e) {
+      logger.error(`[core] prepareShutdown failed: ${e && e.stack}`)
+    }
     childProcessList.forEach((child) => {
       child.instance.kill('SIGTERM') // teng-koa exit signal code
     })
@@ -79,6 +85,10 @@ preStart.loadAsync(opts.config_file || null, false, opts.dev).then(() => {
     if (nconf.get('telemetry:error') && !nconf.get('dev')) {
       CaptureUncaughtException(err)
       Sentry.close()
+        .catch((e) => {
+          // 遥测关闭失败不能阻塞退出流程
+          logger.error(`[core] Sentry.close() failed: ${e && e.stack}`)
+        })
         .then(notifyChildProcessesExit)
         .then(() => {
           process.exit(1)

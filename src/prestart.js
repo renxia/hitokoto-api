@@ -127,9 +127,9 @@ function loadConfig(configFile, next, isChild = false, isDev = false) {
         ],
       },
       telemetry: {
-        performance: true,
-        error: true,
-        usage: true,
+        performance: false,
+        error: false,
+        usage: false,
         debug: false,
       },
     })

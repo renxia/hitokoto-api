@@ -24,6 +24,8 @@ class Workers {
   configFile = ''
   isDev = false // debug mode
   _workers = {} // store workers instance
+  _respawnTimestamps = [] // 异常派生时间戳，用于频率限制
+  shutdownRequested = false // 是否处于主动关闭流程
   env = {} // worker env
   /**
    * @typedef WorkersSettings
@@ -87,8 +89,62 @@ class Workers {
     logger.info('[core.http.primary.Workers] all workers are spawned.')
   }
 
+  // 强制回收全部 worker，避免 master 退出后残留孤儿进程
+  killAllWorkers() {
+    this.shutdownRequested = true
+    const workers = cluster.workers || {}
+    const ids = Object.keys(workers)
+    for (const id of ids) {
+      try {
+        workers[id].kill('SIGKILL')
+      } catch (e) {
+        // ignore
+      }
+    }
+    if (ids.length > 0) {
+      logger.warn(
+        `[core.http.primary.Workers] force killed ${ids.length} worker(s) to avoid orphan processes.`,
+      )
+    }
+    return ids.length
+  }
+
+  // 进入关闭流程：标记并回收全部 worker，避免退出过程中触发补派生
+  prepareShutdown() {
+    logger.verbose(
+      '[core.http.primary.Workers] shutdown requested, stop respawning workers.',
+    )
+    this.killAllWorkers()
+  }
+
+  // 派生频率限制：单位时间内异常派生过多则放弃，交由 PM2 重启 master
+  checkRespawnRate() {
+    const windowMs = 60000
+    const limit = Math.max(this.workersNumbers * 5, 10)
+    const now = Date.now()
+    this._respawnTimestamps = (this._respawnTimestamps || []).filter(
+      (t) => now - t < windowMs,
+    )
+    if (this._respawnTimestamps.length >= limit) {
+      logger.error(
+        `[core.http.primary.Workers] workers exited unexpectedly ${
+          this._respawnTimestamps.length
+        } times within ${Math.round(
+          windowMs / 1000,
+        )}s, exceeded the limit(${limit}). Master will exit and let PM2 restart it.`,
+      )
+      return false
+    }
+    this._respawnTimestamps.push(now)
+    return true
+  }
+
   // Spawn Worker
   spawnWorker() {
+    if (!this.checkRespawnRate()) {
+      this.killAllWorkers()
+      process.exit(1)
+    }
     const worker = cluster.fork(this.env)
     logger.verbose(
       `[core.http.Primary.Workers] worker process(${chalk.yellow(
@@ -108,7 +164,6 @@ class Workers {
         )}: ${chalk.blue(worker.process.pid)}) occur error: \n %s`,
         err.stack,
       )
-      throw err
     })
     worker.on('exit', this.handleExitEvent(worker.process.pid))
     // start server
@@ -150,7 +205,9 @@ class Workers {
           pid,
         )}) exited with code: ${code}, master process exits to ensure the stability.`
         logger.error(errMsg)
-        throw new Error(errMsg) // 抛出 uncaughtException 来让进程可控得中断
+        // 不再 throw：走 uncaughtException 链路会把其余 worker 遗留成孤儿进程（2026-11-22 事故）
+        this.killAllWorkers()
+        process.exit(1) // 交由 PM2 重启 master
       } else if (signal) {
         // exit ignore
         logger.info(
@@ -160,6 +217,15 @@ class Workers {
             pid,
           )})  is exited due to receiving a signal: ${chalk.blue(signal)}`,
         )
+        // 非关闭流程下的信号退出（如被 OOM killer 发 SIGKILL）需要补派生，否则服务降级
+        if (!this.shutdownRequested) {
+          logger.warn(
+            `[core.http.primary.Workers] worker exited by signal: ${chalk.blue(
+              signal,
+            )}, respawning it.`,
+          )
+          this.spawnWorker()
+        }
       } // ignore exit code: 0
     }
   }
